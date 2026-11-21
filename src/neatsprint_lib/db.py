@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Any
 
 from fastapi import Request
-from sqlalchemy import MetaData, func, select, text
+from sqlalchemy import DateTime, MetaData, func, select, text
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -47,17 +47,17 @@ class TenantMixin:
 
 class TimestampMixin:
     created_at: Mapped[datetime] = mapped_column(
-        server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        server_default=func.now(), onupdate=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
     created_by: Mapped[uuid.UUID | None] = mapped_column(PG_UUID(as_uuid=True))
     updated_by: Mapped[uuid.UUID | None] = mapped_column(PG_UUID(as_uuid=True))
 
 
 class SoftDeleteMixin:
-    deleted_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 def create_engine(database_url: str, *, echo: bool = False) -> AsyncEngine:

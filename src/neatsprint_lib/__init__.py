@@ -12,4 +12,4 @@ from neatsprint_lib.ids import new_id
 from neatsprint_lib.settings import ServiceSettings
 
 __all__ = ["ApiError", "ServiceSettings", "new_id"]
-__version__ = "0.1.1"
+__version__ = "0.2.0"

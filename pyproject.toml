@@ -1,6 +1,6 @@
 [project]
 name = "neatsprint-lib"
-version = "0.1.1"
+version = "0.2.0"
 description = "Shared runtime library for NeatSprint FastAPI services"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -14,6 +14,7 @@ dependencies = [
     "asyncpg>=0.30.0,<1.0",
     "prometheus-client>=0.21.0,<1.0",
     "uuid6>=2024.7.10",
+    "pyjwt[crypto]>=2.9.0,<3.0",
 ]
 
 [project.optional-dependencies]
@@ -54,7 +55,7 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "ASYNC", "S"]
-ignore = ["S101"]
+ignore = ["S101", "B008"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S105", "S106"]

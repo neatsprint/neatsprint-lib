@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Any
 
 from fastapi import Request
-from sqlalchemy import DateTime, MetaData, func, select, text
+from sqlalchemy import DateTime, MetaData, event, func, select, text
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import Session as SASession
 
 NAMING_CONVENTION = {
     "ix": "ix_%(column_0_label)s",
@@ -81,6 +82,36 @@ async def get_session(request: Request) -> AsyncIterator[AsyncSession]:
     factory: async_sessionmaker[AsyncSession] = request.app.state.session_factory
     async with factory() as session:
         yield session
+
+
+async def get_tenant_session(request: Request) -> AsyncIterator[AsyncSession]:
+    """Session bound to the caller's tenant for PostgreSQL RLS.
+
+    Every transaction started on this session sets ``app.tenant_id``; policies on
+    tenant-owned tables compare it with ``tenant_id`` and return no rows otherwise.
+    """
+    from neatsprint_lib.auth import get_principal
+
+    principal = await get_principal(request)
+    factory: async_sessionmaker[AsyncSession] = request.app.state.session_factory
+    async with factory() as session:
+        session.info["tenant_id"] = str(principal.tenant_id)
+        yield session
+
+
+def bind_tenant(session: AsyncSession, tenant_id: uuid.UUID) -> None:
+    """Bind a session used outside a user request (internal service calls)."""
+    session.info["tenant_id"] = str(tenant_id)
+
+
+@event.listens_for(SASession, "after_begin")
+def _apply_tenant_setting(session: SASession, transaction: object, connection: object) -> None:
+    tenant_id = session.info.get("tenant_id")
+    if tenant_id:
+        connection.execute(  # type: ignore[attr-defined]
+            text("SELECT set_config('app.tenant_id', :tenant_id, true)"),
+            {"tenant_id": tenant_id},
+        )
 
 
 async def check_database(engine: AsyncEngine) -> bool:

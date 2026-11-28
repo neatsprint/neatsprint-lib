@@ -26,6 +26,7 @@ class Principal:
     roles: tuple[str, ...]
     permissions: frozenset[str]
     jti: str
+    device_id: UUID | None = None
 
     def can(self, permission: str) -> bool:
         return permission in self.permissions
@@ -85,6 +86,7 @@ class TokenVerifier:
         if isinstance(roles, str):
             roles = roles.split(",")
         try:
+            device_id = payload.get("did")
             return Principal(
                 user_id=UUID(payload["sub"]),
                 tenant_id=UUID(payload["tid"]),
@@ -92,6 +94,7 @@ class TokenVerifier:
                 roles=tuple(roles),
                 permissions=frozenset(permissions),
                 jti=payload["jti"],
+                device_id=UUID(device_id) if device_id else None,
             )
         except (KeyError, ValueError, TypeError) as exc:
             raise ApiError(401, "unauthenticated", "The access token is malformed.") from exc
